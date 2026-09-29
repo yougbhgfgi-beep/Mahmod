@@ -427,7 +427,13 @@ footer .credit b{color:var(--gold)}
 .env-letter.show{display:block;animation:fadeUp .6s ease}
 @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 .env-letter .l-salut{font-family:"Marhey",cursive;font-size:24px;color:var(--coral);margin-bottom:12px}
-.env-letter .l-body{font-family:"Amiri",serif;font-size:20px;line-height:2.1;color:#5A4636}
+.env-letter .l-body{font-family:"Amiri",serif;font-size:20px;line-height:2.1;color:#5A4636;text-align:justify;text-align-last:center;min-height:3em}
+.env-letter .l-body .tw-caret{display:inline-block;width:2px;height:1.05em;vertical-align:-.14em;margin-inline-start:2px;background:var(--coral);animation:twBlink .85s steps(1) infinite}
+@keyframes twBlink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.env-letter .l-body .tw-w{opacity:0;animation:twIn .28s ease forwards}
+@keyframes twIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.env-letter .l-sign{transition:opacity .9s ease}
+.env-letter .tw-tap{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:12px;color:var(--rose);opacity:.85;pointer-events:none}
 .env-letter .l-sign{font-family:"Caveat",cursive;font-size:28px;color:var(--coral);margin-top:16px}
 .env-letter .l-rose{font-size:34px;margin-bottom:8px}
 #envNext{display:none;margin:20px auto 0;background:linear-gradient(135deg,var(--coral),var(--deep));
@@ -613,12 +619,12 @@ footer .credit b{color:var(--gold)}
 
   <!-- الشات -->
   <section class="sec">
-    <div class="sec-h"><span class="pin"></span><h2>محادثتنا 💬</h2><i></i></div>
+    <div class="sec-h"><span class="pin"></span><h2>كلامنا اللي بحبه 💬</h2><i></i></div>
     <div class="chat" id="chat">
       <span class="tape" style="top:-13px;right:16%;transform:rotate(-6deg)"></span>
       <div class="chat-top">
         <div class="av">ر</div>
-        <div><b>رفيف</b><small>معاك دايمًا ❤</small></div>
+        <div><b>رفيف</b><small>أنا بعشقك 💗</small></div>
       </div>
       <div id="stream"></div>
     </div>
@@ -779,17 +785,19 @@ footer .credit b{color:var(--gold)}
   /* ===== الشات - محادثة بترد ع بعضها ===== */
   var stream=$('stream'), ci2=0, chatStarted=false;
   var CHAT=[
-    {w:'g',t:'وحشتني أوي النهاردة 🌸'},
-    {w:'m',t:'وأنا كمان وحشتيني أوي 💕'},
-    {w:'g',t:'ضحكتك مش واصلة معايا النهاردة 😅'},
-    {w:'m',t:'عشان إنت الضحكة اللي في حياتي'},
-    {w:'g',t:'آه والله؟ 🥹'},
-    {w:'m',t:'والله.. إنت أغلى حاجة حصلتله في الدنيا ❤️'},
-    {w:'g',t:'وإنت بحبك.. بجنون 🥰'},
-    {w:'m',t:'قلبي بينبض ليكي بس'},
-    {w:'g',t:'وإنت سندي اللي بيحميني 💞'},
-    {w:'m',t:'يبقى اتفضل فيا على طول 💌'},
-    {w:'g',t:'أوعدك.. وأوعدك تاني 🥺💗'}
+    {w:'g',t:'انا بعشقك'},
+    {w:'m',t:'ونا بدمنك'},
+    {w:'g',t:'باي يحياتي'},
+    {w:'m',t:'باي يروح قلبي'},
+    {w:'g',t:'باي ي حياتي'},
+    {w:'m',t:'خلي بالك من نفسك'},
+    {w:'g',t:'خلي بالك من نفسك'},
+    {w:'m',t:'حاضر ونتي برضو'},
+    {w:'g',t:'ا حوداااا'},
+    {w:'g',t:'وحشتني'},
+    {w:'m',t:'يرضيك الراجل هياخد 50 الف ومش هيسيب'},
+    {w:'g',t:'حنبه'},
+    {w:'m',t:'حياتو'},
   ];
   if(stream && CHAT.length){
     var stepChat=function(){
@@ -879,12 +887,47 @@ footer .credit b{color:var(--gold)}
         pr.then(function(){ setPlay(true); }).catch(function(){ setPlay(false); armRetry(); });
       }
     }
+    /* كمل من مكانه بدون ما يرجع للاول */
+    function resumeSong(){
+      if(!audio.paused){ setPlay(true); return; }
+      var pr=null;
+      try{ pr=audio.play(); }catch(e){}
+      if(pr&&pr.then) pr.then(function(){ setPlay(true); }).catch(function(){ setPlay(false); armRetry(); });
+    }
     window.playLoveSong=function(force){
       if(!SURLS.length)return;
       if(force || !audio.getAttribute('src')){ audio.src=SURLS[0]; audio.loop=true; }
-      if(force || audio.paused) startFromTop();
-      else setPlay(true);
+      if(force) startFromTop();
+      else resumeSong();
     };
+  }
+
+  /* ===== الاغنية مع الفيديو: تقفل مع الفيديو وبترجع لوحدها ===== */
+  var vid=$('videoEl');
+  if(vid){
+    var songWasOn=false, vTimer=null;
+    var clearV=function(){ if(vTimer){ clearTimeout(vTimer); vTimer=null; } };
+    var songBack=function(){
+      clearV();
+      if(songWasOn && window.playLoveSong){ songWasOn=false; window.playLoveSong(false); }
+    };
+    var songOff=function(){
+      clearV();
+      if(!audio.paused){ songWasOn=true; audio.pause(); setPlay(false); }
+    };
+    vid.addEventListener('play',songOff);
+    vid.addEventListener('playing',songOff);
+    ['pause','ended','emptied','abort','stalled'].forEach(function(ev){
+      vid.addEventListener(ev,function(){ vTimer=setTimeout(songBack,140); });
+    });
+    vid.addEventListener('seeked',function(){ if(vid.paused) vTimer=setTimeout(songBack,140); });
+    document.addEventListener('fullscreenchange',function(){
+      if(!document.fullscreenElement) vTimer=setTimeout(songBack,300);
+    });
+    vid.addEventListener('webkitendfullscreen',function(){ vTimer=setTimeout(songBack,300); });
+    playBtns.forEach(function(b){
+      b.addEventListener('click',function(){ songWasOn=false; clearV(); });
+    });
   }
 
   /* ===== العدّاد */
@@ -1282,9 +1325,80 @@ footer .credit b{color:var(--gold)}
   var env=document.getElementById('envelope'), letter=document.getElementById('envLetter'),
       next=document.getElementById('envNext'), envScreen=document.getElementById('envelopeScreen'),
       backBtn=document.getElementById('envBackToggle');
+  /* ===== كتابة الرسالة حرف ورا حرف، وتبدأ من فوق ===== */
+  var lBody=document.querySelector('#envLetter .l-body'),
+      lSign=document.querySelector('#envLetter .l-sign'),
+      lTap=document.createElement('span');
+  lTap.className='tw-tap'; lTap.textContent='دوس في أي مكان عشان تكمّل';
+
+  var twTokens=null, twIdx=0, twTimer=null, twRunning=false, twCaret=null;
+
+  function buildTokens(html){
+    var paras=html.split(/<br\s*\/?>\s*<br\s*\/?>|<br\s*\/?>\s*<br\s*\/?>/i),
+        tokens=[];
+    paras.forEach(function(p,k){
+      p=String(p).replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ')
+             .replace(/\u060c/g,'').replace(/\s+/g,' ').trim();
+      if(!p) return;
+      var ws=p.split(' ');
+      ws.forEach(function(w,i){
+        tokens.push({t:'w',s:w});
+        if(i===ws.length-1 && k<paras.length-1) tokens.push({t:'br'});
+      });
+    });
+    return tokens;
+  }
+  function twReset(){
+    if(!lBody) return;
+    if(!twTokens) twTokens=buildTokens(lBody.innerHTML);
+    lBody.innerHTML='';
+    twIdx=0; twRunning=true;
+    twCaret=document.createElement('span');
+    twCaret.className='tw-caret';
+    lBody.appendChild(twCaret);
+    letter.scrollTop=0;
+    if(lSign) lSign.style.opacity='0';
+  }
+  function twStop(full){
+    if(!twRunning) return;
+    twRunning=false;
+    if(twTimer){ clearTimeout(twTimer); twTimer=null; }
+    if(full){
+      while(twIdx<twTokens.length){
+        var tk=twTokens[twIdx++];
+        if(tk.t==='br'){ lBody.appendChild(document.createElement('br')); lBody.appendChild(document.createElement('br')); }
+        else { var sp=document.createElement('span'); sp.textContent=tk.s+' '; lBody.appendChild(sp); }
+      }
+    }
+    if(twCaret&&twCaret.parentNode) twCaret.parentNode.removeChild(twCaret);
+    if(lSign) lSign.style.opacity='1';
+    if(lTap&&lTap.parentNode) lTap.parentNode.removeChild(lTap);
+  }
+  function twStep(){
+    if(twIdx>=twTokens.length){ twStop(false); return; }
+    var tk=twTokens[twIdx++];
+    if(tk.t==='br'){
+      lBody.insertBefore(document.createElement('br'),twCaret);
+      lBody.insertBefore(document.createElement('br'),twCaret);
+    } else {
+      var sp=document.createElement('span');
+      sp.className='tw-w'; sp.textContent=tk.s+' ';
+      lBody.insertBefore(sp,twCaret);
+    }
+    letter.scrollTop=letter.scrollHeight;
+    twTimer=setTimeout(twStep, tk.t==='br'?110:20);
+  }
+  if(lBody){
+    letter.appendChild(lTap);
+    letter.addEventListener('click',function(){ if(twRunning) twStop(true); });
+  }
+
   env.addEventListener('click',function(){
     env.classList.add('open');
-    setTimeout(function(){ letter.classList.add('show'); next.classList.add('show'); backBtn.classList.add('show'); },720);
+    setTimeout(function(){
+      letter.classList.add('show'); next.classList.add('show'); backBtn.classList.add('show');
+      if(lBody){ twReset(); twStep(); }
+    },720);
   });
   next.addEventListener('click',function(){
     if(window.playLoveSong)window.playLoveSong(false);
