@@ -796,7 +796,6 @@ footer .credit b{color:var(--gold)}
     {w:'g',t:'ا حوداااا'},
     {w:'g',t:'وحشتني'},
     {w:'m',t:'يرضيك الراجل هياخد 50 الف ومش هيسيب'},
-    {w:'g',t:'حنبه'},
     {w:'m',t:'حياتو'},
   ];
   if(stream && CHAT.length){
@@ -905,29 +904,62 @@ footer .credit b{color:var(--gold)}
   /* ===== الاغنية مع الفيديو: تقفل مع الفيديو وبترجع لوحدها ===== */
   var vid=$('videoEl');
   if(vid){
-    var songWasOn=false, vTimer=null;
+    var userPaused=false, vTimer=null, lastBack=0, tries=0;
     var clearV=function(){ if(vTimer){ clearTimeout(vTimer); vTimer=null; } };
+
+    /* ترجع الاغنية لاي مكان اتوقف فيه الفيديو */
     var songBack=function(){
       clearV();
-      if(songWasOn && window.playLoveSong){ songWasOn=false; window.playLoveSong(false); }
+      if(userPaused || !window.playLoveSong) return;
+      var now=Date.now();
+      if(now-lastBack<500) return;
+      if(!audio.paused){ setPlay(true); return; }
+      lastBack=now; tries++;
+      window.playLoveSong(false);
+      /* الموبايل بيمنع التشغيل التلقائي أحياناً => جرب كمان مرة بعد لمسة */
+      if(tries<3){
+        var again=function(){ if(!audio.paused||userPaused) return;
+          window.playLoveSong(false); document.removeEventListener('touchend',again); };
+        document.addEventListener('touchend',again,{once:true,passive:true});
+        document.addEventListener('click',again,{once:true});
+      }
     };
+    var songBackSoon=function(){ clearV(); vTimer=setTimeout(songBack,200); };
     var songOff=function(){
       clearV();
-      if(!audio.paused){ songWasOn=true; audio.pause(); setPlay(false); }
+      if(!audio.paused){ audio.pause(); setPlay(false); }
     };
+
     vid.addEventListener('play',songOff);
     vid.addEventListener('playing',songOff);
-    ['pause','ended','emptied','abort','stalled'].forEach(function(ev){
-      vid.addEventListener(ev,function(){ vTimer=setTimeout(songBack,140); });
+    ['pause','ended','emptied','abort','seeked','waiting','stalled','loadeddata'].forEach(function(ev){
+      vid.addEventListener(ev,function(){
+        if(!vid.paused) return;
+        songBackSoon();
+      });
     });
-    vid.addEventListener('seeked',function(){ if(vid.paused) vTimer=setTimeout(songBack,140); });
+    /* يقفل تلقائي اول ما الفيديو يخلص فعلاً */
+    vid.addEventListener('timeupdate',function(){
+      if(!vid.duration || vid.paused) return;
+      if(vid.currentTime>=vid.duration-0.12) songBackSoon();
+    });
+    /* قفل ملء الشاشة على الموبايل */
     document.addEventListener('fullscreenchange',function(){
-      if(!document.fullscreenElement) vTimer=setTimeout(songBack,300);
+      if(!document.fullscreenElement) songBackSoon();
     });
-    vid.addEventListener('webkitendfullscreen',function(){ vTimer=setTimeout(songBack,300); });
+    document.addEventListener('webkitfullscreenchange',function(){
+      if(!document.webkitFullscreenElement) songBackSoon();
+    });
+    vid.addEventListener('webkitendfullscreen',songBackSoon);
+    /* المستخدم لو وقف الاغنية بنفسه => مت.Backش ليه */
     playBtns.forEach(function(b){
-      b.addEventListener('click',function(){ songWasOn=false; clearV(); });
+      b.addEventListener('click',function(){ userPaused=audio.paused; clearV(); tries=0; });
     });
+    /* مراقب: لو الفيديو واقف والاغنية واقفه => رجّعها فوراً */
+    setInterval(function(){
+      if(!vid.paused || audio.paused || userPaused || document.hidden) return;
+      songBack();
+    },1200);
   }
 
   /* ===== العدّاد */
